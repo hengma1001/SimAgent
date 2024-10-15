@@ -1,6 +1,6 @@
 import operator
 from functools import partial
-from typing import Annotated, Sequence
+from typing import Annotated, List, Sequence
 
 from langchain.output_parsers.openai_functions import JsonOutputFunctionsParser
 from langchain_core.messages import BaseMessage, HumanMessage, trim_messages
@@ -18,13 +18,39 @@ class AgentState(TypedDict):
     next: str
 
 
+# ResearchTeam graph state
+class MDTeamState(TypedDict):
+    # A message is added after each team member finishes
+    messages: Annotated[List[BaseMessage], operator.add]
+    # The team members are tracked so they are aware of
+    # the others' skill-sets
+    team_members: List[str]
+    # Used to route work. The supervisor calls a function
+    # that will update this every time it makes a decision
+    next: str
+
+
+# ResearchTeam graph state
+class CodingTeamState(TypedDict):
+    # A message is added after each team member finishes
+    messages: Annotated[List[BaseMessage], operator.add]
+    # The team members are tracked so they are aware of
+    # the others' skill-sets
+    team_members: List[str]
+    # generated python code
+    code: str
+    # Used to route work. The supervisor calls a function
+    # that will update this every time it makes a decision
+    next: str
+
+
 def agent_node(state, agent, name):
     result = agent.invoke(state)
     return {"messages": [HumanMessage(content=result["messages"][-1].content, name=name)]}
 
 
-def worker_node(llm, tools, name):
-    agent = create_react_agent(llm, tools=tools)
+def worker_node(llm, tools, name, **kwargs):
+    agent = create_react_agent(llm, tools=tools, **kwargs)
     node = partial(agent_node, agent=agent, name=name)
     return node
 

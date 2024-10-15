@@ -1,5 +1,5 @@
 [build-system]
-requires = ["flit_core >=2,<4"]
+requires = ["flit_core >=3.2,<4"]
 build-backend = "flit_core.buildapi"
 
 [project]
@@ -20,6 +20,7 @@ classifiers = [
 requires-python = ">=3.8.1"
 dynamic = ["version"]
 dependencies = ["langchain"]
+
 [project.optional-dependencies]
 spark = ["pyspark>=3.0.0"]
 test = [
@@ -42,13 +43,13 @@ test = [
     "shellcheck-py==0.9.0.2",
 ]
 
-[project.urls]
-Documentation = "https://github.com/microsoft/python-package-template/tree/main#readme"
-Source = "https://github.com/microsoft/python-package-template"
-Tracker = "https://github.com/microsoft/python-package-template/issues"
+# [project.urls]
+# Documentation = "https://github.com/microsoft/python-package-template/tree/main#readme"
+# Source = "https://github.com/microsoft/python-package-template"
+# Tracker = "https://github.com/microsoft/python-package-template/issues"
 
 [tool.flit.module]
-name = "python_package"
+name = "SimAgent"
 
 [tool.bandit]
 exclude_dirs = ["build", "dist", "tests", "scripts"]
@@ -91,7 +92,7 @@ venv = "env37"
 reportMissingImports = true
 reportMissingTypeStubs = false
 
-pythonVersion = "3.7"
+pythonVersion = "3.11"
 pythonPlatform = "Linux"
 
 executionEnvironments = [{ root = "src" }]

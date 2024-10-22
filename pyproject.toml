@@ -19,7 +19,17 @@ classifiers = [
 ]
 requires-python = ">=3.8.1"
 dynamic = ["version"]
-dependencies = ["langchain"]
+dependencies = [
+    "langchain",
+    "langgraph",
+    "langchain_openai",
+    "langchain_ollama",
+    "langchain_core",
+    "langchain_experimental",
+    "langsmith",
+    "pandas",
+    "matplotlib",
+]
 
 [project.optional-dependencies]
 spark = ["pyspark>=3.0.0"]

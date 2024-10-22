@@ -6,7 +6,10 @@ from langchain.output_parsers.openai_functions import JsonOutputFunctionsParser
 from langchain_core.messages import BaseMessage, HumanMessage, trim_messages
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langgraph.prebuilt import create_react_agent
+from pydantic import Field
 from typing_extensions import TypedDict
+
+from .utils import BaseConfig
 
 
 # The agent state is the input to each node in the graph
@@ -34,11 +37,6 @@ class MDTeamState(TypedDict):
 class CodingTeamState(TypedDict):
     # A message is added after each team member finishes
     messages: Annotated[List[BaseMessage], operator.add]
-    # The team members are tracked so they are aware of
-    # the others' skill-sets
-    team_members: List[str]
-    # generated python code
-    code: str
     # Used to route work. The supervisor calls a function
     # that will update this every time it makes a decision
     next: str
@@ -99,3 +97,66 @@ def create_supervisor(llm, system_prompt, members) -> str:
         | llm.bind_functions(functions=[function_def], function_call="route")
         | JsonOutputFunctionsParser()
     )
+
+
+# def code_review_agent(state: CodingTeamState):
+#     """Run the python code
+
+#     Parameters
+#     ----------
+#     state : CodingTeamState
+#         _description_
+#     """
+#     code = state.messages[-1].content
+
+#     if code == "":
+#         error_message = [BaseMessage(content=f"Missing entry in the code section. ", type="text")]
+#         state.messages += error_message
+#         state.next = "coder"
+#         return {"review": state}
+
+#     try:
+#         exec(code)
+#         error_message = [BaseMessage(content=f"Run success! ", type="text")]
+#         state.messages += error_message
+#         state.next = "DONE"
+#     except Exception as e:
+#         error_message = [BaseMessage(content=f"Your solution failed the test: {e}", type="text")]
+#         state.messages += error_message
+#         state.next = "coder"
+
+#     return {"review": state}
+
+
+# def code_generate(llm, state: CodingTeamState):
+#     """_summary_
+
+#     Parameters
+#     ----------
+#     llm : _type_
+#         llm model for code generation
+#     state : CodingTeamState
+#         _description_
+#     """
+#     messages = state.messages
+#     # code = state.code
+
+#     code_gen_prompt = ChatPromptTemplate.from_messages(
+#         [
+#             (
+#                 "system",
+#                 """ You are a coding assistant with expertise in Python. \n
+#                 Ensure any code you provide can be executed with all required imports and variables \n
+#                 defined. Please only output the code. \n Here is the user question: """,
+#             ),
+#             ("placeholder", "{messages}"),
+#         ]
+#     )
+
+#     chain = code_gen_prompt | llm
+
+#     code_solution = chain.invoke({"messages": messages})
+
+#     code_solution.next = "review"
+
+#     return {"coder": code_solution}

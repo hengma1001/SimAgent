@@ -93,17 +93,6 @@ class CodingTeamWorkflow:
             If the code is good, run it in current environment, and output DONE. """,
         )
 
-        env_agent = worker_node(
-            self.llm,
-            [shell_tool],
-            name="envBuilder",
-            messages_modifier="""
-            You are managing the system environment. You need to \n
-            install the missing packages in the environment via pip or \n
-            conda.
-            """,
-        )
-
         writing_agent = worker_node(self.llm, [write_script], name="writer")
 
         def router(state):
@@ -125,11 +114,16 @@ class CodingTeamWorkflow:
         graph.add_node("coder", code_agent)
         graph.add_node("reviewer", review_agent)
         graph.add_node("writer", writing_agent)
-        graph.add_node("envBuilder", env_agent)
 
         graph.add_edge("coder", "reviewer")
-        graph.add_edge("envBuilder", "reviewer")
-        graph.add_conditional_edges("reviewer", router, {"coder": "coder", "DONE": "writer", "ENV": "envBuilder"})
+        graph.add_conditional_edges(
+            "reviewer",
+            router,
+            {
+                "coder": "coder",
+                "DONE": "writer",
+            },
+        )
         graph.add_edge("writer", END)
 
         graph.add_edge(START, "coder")

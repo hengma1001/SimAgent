@@ -20,7 +20,8 @@ def simulate_structure(
     pressure: Annotated[float, "pressure for NPT ensemble in atm"] = 1.0,
     temperature: Annotated[float, "simulation temperature in kelvin"] = 300,
     timestep: Annotated[float, "simulation timestep in ps"] = 0.002,
-    simLength: Annotated[float, "The length of the simulation"] = 0.1,
+    report_frequency: Annotated[float, "How often MD writes a frame in ps"] = 10,
+    simLength: Annotated[float, "The length of the simulation in ns"] = 0.1,
 ):
     """
     Model the molecular structure with molecular dynamics simulation
@@ -45,6 +46,8 @@ def simulate_structure(
     simulation.context.setPositions(top.positions)
 
     simulation.minimizeEnergy()
+
+    total_steps = (report_frequency * u.picoseconds) / (timestep * u.picoseconds)
     simulation.reporters.append(app.DCDReporter("output.dcd", 1000))
     simulation.reporters.append(
         app.StateDataReporter(

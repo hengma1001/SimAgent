@@ -1,4 +1,5 @@
 import os
+import shutil
 import urllib.request
 from pathlib import Path
 from typing import Annotated, Optional
@@ -10,6 +11,8 @@ from langchain_core.tools import tool
 from md_setup.param import AMBER_param
 from openmm import app
 from openmm import unit as u
+
+from .utils import get_work_dir
 
 
 @tool
@@ -26,6 +29,33 @@ def simulate_structure(
     """
     Model the molecular structure with molecular dynamics simulation
     """
+
+    work_dir = get_work_dir(tag="sim")
+    shutil.copy(pdb_file, work_dir)
+    pdb_file = f"{work_dir}/{os.path.basename(pdb_file)}"
+
+    base_dir = os.getcwd()
+    try:
+        os.chdir(work_dir)
+        omm_simulate(
+            pdb_file, nonbondedCutoff, hydrogenMass, pressure, temperature, timestep, report_frequency, simLength
+        )
+    finally:
+        os.chdir(base_dir)
+
+    return f"Finished simulation. Result store in {work_dir}/output.dcd. "
+
+
+def omm_simulate(
+    pdb_file: Annotated[str, "3D structure in pdb format"],
+    nonbondedCutoff: Annotated[float, "cutoff distance for nonbonded interactions"] = 1.0,
+    hydrogenMass: Annotated[float, "mass of hydrogen atoms to stabilize protein dynamics"] = 1.0,
+    pressure: Annotated[float, "pressure for NPT ensemble in atm"] = 1.0,
+    temperature: Annotated[float, "simulation temperature in kelvin"] = 300,
+    timestep: Annotated[float, "simulation timestep in ps"] = 0.002,
+    report_frequency: Annotated[float, "How often MD writes a frame in ps"] = 10,
+    simLength: Annotated[float, "The length of the simulation in ns"] = 0.1,
+):
     top_file, pdb_file = build_top_tleap(pdb_file)
     top = pmd.load_file(top_file, xyz=pdb_file)
 
@@ -47,15 +77,15 @@ def simulate_structure(
 
     simulation.minimizeEnergy()
 
-    total_steps = (report_frequency * u.picoseconds) / (timestep * u.picoseconds)
-    simulation.reporters.append(app.DCDReporter("output.dcd", 1000))
+    report_freq = (report_frequency * u.picoseconds) / (timestep * u.picoseconds)
+    simulation.reporters.append(app.DCDReporter("output.dcd", int(report_freq)))
     simulation.reporters.append(
         app.StateDataReporter(
-            "output.log", 1000, step=True, time=True, potentialEnergy=True, temperature=True, speed=True
+            "output.log", report_freq, step=True, time=True, potentialEnergy=True, temperature=True, speed=True
         )
     )
     total_steps = (simLength * u.nanoseconds) / (timestep * u.picoseconds)
-    simulation.step(total_steps)
+    simulation.step(int(total_steps))
 
 
 def save_omm_system(system, save_xml):
@@ -87,7 +117,7 @@ def build_top_tleap(pdb_file):
 
 
 def pick_protein_only(pdb_file):
-    save_pdb = f"./_{os.path.basename(pdb_file)}"
+    save_pdb = f"{os.path.dirname(pdb_file)}/_{os.path.basename(pdb_file)}"
     mda_u = mda.Universe(pdb_file)
     protein = mda_u.select_atoms("protein")
     protein.write(save_pdb)
@@ -100,8 +130,9 @@ def download_structure(pdb_code: Annotated[str, "PDB code for the protein"]):
     Download the PDB structure from RCSB
     """
     url = f"https://files.rcsb.org/view/{pdb_code}.pdb"
+    work_dir = get_work_dir(tag="pdb")
     try:
-        urllib.request.urlretrieve(url, f"{pdb_code}.pdb")
-        return f"Successfully retrieved {pdb_code}.pdb."
+        urllib.request.urlretrieve(url, f"{work_dir}/{pdb_code}.pdb")
+        return f"Successfully retrieved {work_dir}/{pdb_code}.pdb."
     except:
         return f"Failed to retrieve {pdb_code}. Please recheck the PDB ID."

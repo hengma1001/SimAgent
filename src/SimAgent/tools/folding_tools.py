@@ -1,3 +1,5 @@
+import datetime
+import os
 from pathlib import Path
 from typing import Annotated, Optional
 
@@ -5,6 +7,7 @@ import torch
 from langchain_core.tools import tool
 
 from .registry import clear_torch_cuda_memory_callback, register
+from .utils import get_work_dir
 
 
 @tool
@@ -17,7 +20,8 @@ def fold_sequence(
     """
     esmfold = EsmFold()
     ppi_structure = esmfold.run(sequence)
-    with open(output_pdb, "w") as f:
+    work_dir = get_work_dir(tag="fold")
+    with open(f"{work_dir}/{output_pdb}", "w") as f:
         f.write(ppi_structure)
 
 

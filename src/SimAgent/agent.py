@@ -9,8 +9,6 @@ from langgraph.prebuilt import create_react_agent
 from pydantic import Field
 from typing_extensions import TypedDict
 
-from .utils import BaseConfig
-
 
 # The agent state is the input to each node in the graph
 class AgentState(TypedDict):

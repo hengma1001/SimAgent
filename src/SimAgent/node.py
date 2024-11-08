@@ -27,8 +27,8 @@ class parsl_tool_node(ToolNode):
 
         parsl_insts = []
         for tool_call in input["messages"][-1].tool_calls:
-            tool_parsl = python_app(self.tools_by_name[tool_call["name"]].invoke)
-            observation = tool_parsl(tool_call["args"])
+            tool_parsl = python_app(self.tools_by_name[tool_call["name"]].func)
+            observation = tool_parsl(**tool_call["args"])
             parsl_insts.append([observation, tool_call["id"]])
 
         for inst, tool_id in parsl_insts:

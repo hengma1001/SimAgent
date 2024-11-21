@@ -6,12 +6,12 @@ from langchain.output_parsers.openai_functions import JsonOutputFunctionsParser
 from langchain_core.messages import BaseMessage, HumanMessage, trim_messages
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langgraph.prebuilt import create_react_agent
-from pydantic import Field
+from pydantic import BaseModel, Field
 from typing_extensions import TypedDict
 
 
 # The agent state is the input to each node in the graph
-class AgentState(TypedDict):
+class SuperviseState(TypedDict):
     # The annotation tells the graph that new messages will always
     # be added to the current states
     messages: Annotated[Sequence[BaseMessage], operator.add]
@@ -19,25 +19,10 @@ class AgentState(TypedDict):
     next: str
 
 
-# ResearchTeam graph state
-class MDTeamState(TypedDict):
-    # A message is added after each team member finishes
-    messages: Annotated[List[BaseMessage], operator.add]
-    # The team members are tracked so they are aware of
-    # the others' skill-sets
-    team_members: List[str]
-    # Used to route work. The supervisor calls a function
-    # that will update this every time it makes a decision
-    next: str
+class Superviser_state(BaseModel):
+    """Superviser deciding who's acting next."""
 
-
-# ResearchTeam graph state
-class CodingTeamState(TypedDict):
-    # A message is added after each team member finishes
-    messages: Annotated[List[BaseMessage], operator.add]
-    # Used to route work. The supervisor calls a function
-    # that will update this every time it makes a decision
-    next: str
+    next: str = Field(description="The next step action decided from the previous conversation. ")
 
 
 def agent_node(state, agent, name):
@@ -62,39 +47,34 @@ def create_supervisor(llm, system_prompt, members) -> str:
     )
 
     options = ["FINISH"] + members
-    function_def = {
-        "name": "route",
-        "description": "Select the next role.",
-        "parameters": {
-            "title": "routeSchema",
-            "type": "object",
-            "properties": {
-                "next": {
-                    "title": "Next",
-                    "anyOf": [
-                        {"enum": options},
-                    ],
-                },
-            },
-            "required": ["next"],
-        },
-    }
+    # function_def = {
+    #     "name": "route",
+    #     "description": "Select the next role.",
+    #     "parameters": {
+    #         "title": "routeSchema",
+    #         "type": "object",
+    #         "properties": {
+    #             "next": {
+    #                 "title": "Next",
+    #                 "anyOf": [
+    #                     {"enum": options},
+    #                 ],
+    #             },
+    #         },
+    #         "required": ["next"],
+    #     },
+    # }
     prompt = ChatPromptTemplate.from_messages(
         [
             ("system", system_prompt),
             MessagesPlaceholder(variable_name="messages"),
             (
                 "system",
-                "Given the conversation above, who should act next? Or should we FINISH? Select one of: {options}",
+                "Given the information above, who should act next? Or should we FINISH? Select one of: {options}",
             ),
         ]
     ).partial(options=str(options), team_members=", ".join(members))
-    return (
-        prompt
-        | trimmer
-        | llm.bind_functions(functions=[function_def], function_call="route")
-        | JsonOutputFunctionsParser()
-    )
+    return prompt | trimmer | llm.with_structured_output(Superviser_state)
 
 
 # def code_review_agent(state: CodingTeamState):

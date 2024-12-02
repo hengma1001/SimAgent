@@ -7,8 +7,9 @@ from typing import Annotated, Optional
 import MDAnalysis as mda
 import openmm as omm
 import parmed as pmd
+import pdbfixer
 from langchain_core.tools import tool
-from md_setup.param import AMBER_param
+from md_setup.param import AMBER_param, GMX_param
 from openmm import app
 from openmm import unit as u
 
@@ -56,7 +57,7 @@ def omm_simulate(
     report_frequency: Annotated[float, "How often MD writes a frame in ps"] = 10,
     simLength: Annotated[float, "The length of the simulation in ns"] = 0.1,
 ):
-    top_file, pdb_file = build_top_tleap(pdb_file)
+    top_file, pdb_file = build_top_gmx(pdb_file)
     top = pmd.load_file(top_file, xyz=pdb_file)
 
     app.PDBFile.writeFile(top.topology, top.positions, open("input.pdb", "w"))
@@ -114,6 +115,36 @@ def build_top_tleap(pdb_file):
     )
     amberParam.param_comp()
     return amberParam.output_top, amberParam.output_inpcrd
+
+
+def build_top_gmx(pdb_file):
+    """
+    Building protein topology with tleap,
+    NOTE: assuming protein-only system
+    """
+    pdb_file = pick_protein_only(pdb_file)
+    pdb_file = fix_pdb(pdb_file)
+    ff_dir = os.getenv("GMX_ff")
+    mdp_file = os.getenv("GMX_mdp")
+
+    assert ff_dir is not None, "Missing GMX_ff env variable for gmx top building"
+    assert mdp_file is not None, "Missing GMX_mdp env variable for gmx top building"
+
+    shutil.copy2(mdp_file, f"./{os.path.basename(mdp_file)}")
+    shutil.copytree(ff_dir, f"./{os.path.basename(ff_dir)}")
+
+    gmx_top = GMX_param(pdb_file)
+    return gmx_top.top, gmx_top.gro
+
+
+def fix_pdb(pdb_file):
+    fixer = pdbfixer.PDBFixer(pdb_file)
+    fixer.findMissingResidues()
+    fixer.missingResidues = {}
+    fixer.findMissingAtoms()
+    fixer.addMissingAtoms()
+    app.PDBFile.writeFile(fixer.topology, fixer.positions, open(pdb_file, "w"))
+    return pdb_file
 
 
 def pick_protein_only(pdb_file):

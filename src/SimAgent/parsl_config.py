@@ -383,7 +383,7 @@ class PolarisConfig(BaseComputeConfig):
     retries: int = 1
     """Number of retries upon failure."""
 
-    def get_config(self, run_dir: PathLike) -> Config:
+    def get_parsl_config(self, run_dir: PathLike) -> Config:
         """Create a parsl configuration for running on Polaris@ALCF.
 
         We will launch 4 workers per node, each pinned to a different GPU.

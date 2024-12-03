@@ -23,6 +23,7 @@ def fold_sequence(
     work_dir = get_work_dir(tag="fold")
     with open(f"{work_dir}/{output_pdb}", "w") as f:
         f.write(ppi_structure)
+        return f"{sequence} is folded as {work_dir}/{output_pdb}."
 
 
 @register(shutdown_callback=clear_torch_cuda_memory_callback)

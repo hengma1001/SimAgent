@@ -19,6 +19,7 @@ from .tools import (
     download_structure,
     fold_sequence,
     python_repl,
+    run_simulation_ensemble,
     shell_tool,
     simulate_structure,
     tavily_tool,
@@ -43,14 +44,10 @@ class base_team(BaseModel):
 
 
 class sim_team(base_team):
-    parsl_run: bool = Field(default=False, description="Whether to implement parsl for the tool node")
 
     def build_graph(self):
-        tools = [download_structure, fold_sequence, simulate_structure]
-        if self.parsl_run:
-            tool_node = parsl_tool_node(tools)
-        else:
-            tool_node = ToolNode(tools)
+        tools = [download_structure, fold_sequence, run_simulation_ensemble]
+        tool_node = ToolNode(tools)
         model = self.llm.bind_tools(tools)
 
         def should_continue(state: MessagesState):

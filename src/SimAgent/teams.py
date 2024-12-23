@@ -3,6 +3,7 @@ from functools import partial
 from typing import Annotated, Any, List, Tuple, Union
 
 from langchain import hub
+from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -355,6 +356,7 @@ class plan_sim_team(plan_exe_team):
 
 
 class research_sim_team(sim_team):
+    n_search_results: int = 5
 
     def build_graph(self):
 
@@ -362,7 +364,11 @@ class research_sim_team(sim_team):
         prompt = hub.pull("ih/ih-react-agent-executor")
 
         # Choose the LLM that will drive the agent
-        search_agent = create_react_agent(self.llm, [tavily_tool], state_modifier=prompt)
+        search_agent = create_react_agent(
+            self.llm,
+            [TavilySearchResults(max_results=self.n_search_results), download_structure],
+            state_modifier=prompt,
+        )
 
         # sim_tools = [download_structure, fold_sequence, simulate_structure]
         sim_agent = sim_team(llm_model=self.llm_model, parsl_run=self.parsl_run).build_graph()

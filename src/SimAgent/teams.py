@@ -366,7 +366,7 @@ class research_sim_team(sim_team):
         # Choose the LLM that will drive the agent
         search_agent = create_react_agent(
             self.llm,
-            [TavilySearchResults(max_results=self.n_search_results), download_structure],
+            [TavilySearchResults(max_results=self.n_search_results)],
             state_modifier=prompt,
         )
 

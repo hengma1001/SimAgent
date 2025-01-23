@@ -3,9 +3,12 @@ from typing import Annotated
 
 from langchain_community.tools import ShellTool
 from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain_community.vectorstores import Chroma
 from langchain_core.tools import tool
 from langchain_experimental.tools import PythonREPLTool
 from langchain_experimental.utilities import PythonREPL
+from langchain_openai import OpenAIEmbeddings
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 tavily_tool = TavilySearchResults(max_results=5)
 python_repl_tool = PythonREPLTool()
@@ -58,8 +61,28 @@ def shell_tool(cmd: Annotated[str, "The shell command to build the conda environ
 
 
 # @tool
-# def exec_code():
-#     pass
+# def pdf_retriever(pdf_files: Annotated[str, "List of PDF file paths to extract text from."]):
+#     """
+#     Extract text from PDF files and add to vectorDB
+
+#     Parameters
+#     ----------
+#     pdf_files : Annotated[str, &quot;List of PDF file paths to extract text from.&quot;]
+#         _description_
+#     """
+#     docs = [WebBaseLoader(pdf_file).load() for pdf_file in pdf_files]
+#     docs_list = [item for sublist in docs for item in sublist]
+
+#     text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(chunk_size=100, chunk_overlap=50)
+#     doc_splits = text_splitter.split_documents(docs_list)
+
+#     # Add to vectorDB
+#     vectorstore = Chroma.from_documents(
+#         documents=doc_splits,
+#         collection_name="rag-chroma",
+#         embedding=OpenAIEmbeddings(),
+#     )
+#     retriever = vectorstore.as_retriever()
 
 
 def code_check(state):

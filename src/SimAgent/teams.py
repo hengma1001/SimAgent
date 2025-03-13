@@ -19,6 +19,7 @@ from .tools import (
     download_structure,
     fold_sequence,
     python_repl,
+    run_enhance_md,
     run_simulation_ensemble,
     shell_tool,
     simulate_structure,
@@ -399,5 +400,46 @@ class research_sim_team(sim_team):
         # Finally, we compile it!
         # This compiles it into a LangChain Runnable,
         # meaning you can use it as you would any other runnable
+        app = workflow.compile()
+        return app
+
+
+class enhance_md_team(base_team):
+
+    def build_graph(self):
+        tools = [run_enhance_md]
+        tool_node = ToolNode(tools)
+        model = self.llm.bind_tools(tools)
+        simulator_prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    """You are a simulator tasked with running a molecular dynamics simulation. You will be running multiple iteraction of enchanced MD simulations to reach the target state.""",
+                )
+            ]
+        )
+
+        def should_continue(state: MessagesState):
+            messages = state["messages"]
+            last_message = messages[-1]
+            if last_message.tool_calls:
+                return "tools"
+            return END
+
+        def call_model(state: MessagesState):
+            messages = state["messages"]
+            response = model.invoke(messages)
+            return {"messages": [response]}
+
+        workflow = StateGraph(MessagesState)
+
+        # Define the two nodes we will cycle between
+        workflow.add_node("agent", call_model)
+        workflow.add_node("tools", tool_node)
+
+        workflow.add_edge(START, "agent")
+        workflow.add_conditional_edges("agent", should_continue, ["tools", END])
+        workflow.add_edge("tools", "agent")
+
         app = workflow.compile()
         return app

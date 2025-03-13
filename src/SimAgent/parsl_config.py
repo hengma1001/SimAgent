@@ -106,6 +106,7 @@ class WorkstationConfig(BaseComputeConfig):
         default="gpu_htex",
         description="Label for the executor.",
     )
+    worker_init: str = Field("", description="Command to run before starting a worker.")
 
     def get_parsl_config(self, run_dir: Union[str, Path]) -> Config:
         """Generate a Parsl configuration for workstation execution."""
@@ -119,7 +120,7 @@ class WorkstationConfig(BaseComputeConfig):
                     cpu_affinity="block",
                     available_accelerators=self.available_accelerators,
                     worker_port_range=self.worker_port_range,
-                    provider=LocalProvider(init_blocks=1, max_blocks=1),
+                    provider=LocalProvider(worker_init=self.worker_init, init_blocks=1, max_blocks=1),
                 ),
             ],
         )

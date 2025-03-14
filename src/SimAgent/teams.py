@@ -35,6 +35,7 @@ def get_llm(model_name: str):
 
 class base_team(BaseModel):
     llm_model: str = Field(default="gpt-4o-mini", description="the LLM model name")
+    parsl_run: bool = Field(default=False, description="Whether to implement parsl for the tool node")
     human_in_loop: bool = Field(default=False, description="human approval at the end of the workflow")
 
     @property
@@ -79,7 +80,6 @@ class sim_team(base_team):
 
 
 class plan_exe_team(base_team):
-    parsl_run: bool = Field(default=False, description="Whether to implement parsl for the tool node")
 
     def build_graph(self):
         tools = [tavily_tool]

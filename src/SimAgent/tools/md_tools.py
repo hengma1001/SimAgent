@@ -34,7 +34,7 @@ def run_simulation_ensemble(
     """
     run_insts = []
     for _ in range(num_sim):
-        sim_inst = simulate_structure(
+        sim_inst = simulate_structure_parsl(
             pdb_file, nonbondedCutoff, hydrogenMass, pressure, temperature, timestep, report_frequency, simLength
         )
         run_insts.append(sim_inst)
@@ -46,6 +46,37 @@ def run_simulation_ensemble(
 
 
 @python_app
+def simulate_structure_parsl(
+    pdb_file: Annotated[str, "3D structure in pdb format"],
+    nonbondedCutoff: Annotated[float, "cutoff distance for nonbonded interactions"] = 1.0,
+    hydrogenMass: Annotated[float, "mass of hydrogen atoms to stabilize protein dynamics"] = 1.0,
+    pressure: Annotated[float, "pressure for NPT ensemble in atm"] = 1.0,
+    temperature: Annotated[float, "simulation temperature in kelvin"] = 300,
+    timestep: Annotated[float, "simulation timestep in ps"] = 0.002,
+    report_frequency: Annotated[float, "How often MD writes a frame in ps"] = 10,
+    simLength: Annotated[float, "The length of the simulation in ns"] = 0.1,
+):
+    """
+    Model the molecular structure with molecular dynamics simulation
+    """
+
+    work_dir = get_work_dir(tag="sim")
+    shutil.copy(pdb_file, work_dir)
+    pdb_file = f"{work_dir}/{os.path.basename(pdb_file)}"
+
+    base_dir = os.getcwd()
+    try:
+        os.chdir(work_dir)
+        result = omm_simulate(
+            pdb_file, nonbondedCutoff, hydrogenMass, pressure, temperature, timestep, report_frequency, simLength
+        )
+    finally:
+        os.chdir(base_dir)
+
+    return result
+
+
+@tool
 def simulate_structure(
     pdb_file: Annotated[str, "3D structure in pdb format"],
     nonbondedCutoff: Annotated[float, "cutoff distance for nonbonded interactions"] = 1.0,

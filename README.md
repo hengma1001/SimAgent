@@ -13,8 +13,14 @@ The main dependencies are `LangGraph` for the LLM agent framework and `OpenMM` f
 
 ## Getting Started
 
-In the [experiments/experiment_parsl](https://github.com/hengma1001/SimAgent/tree/hpc/experiments/experiments_parsl) folder, there are 4 examples for different test runs, with user prompts.
+The test run with a local PDB file can be run with
+```python
+python examples/sim_team.py
+```
 
+The Polaris run is set up with
+```python
+```
 
 ## Contributing
 

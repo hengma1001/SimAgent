@@ -12,11 +12,40 @@ from langchain_core.tools import tool
 from md_setup.param import AMBER_param, GMX_param
 from openmm import app
 from openmm import unit as u
+from parsl.app.app import python_app
 
 from .utils import get_work_dir
 
 
 @tool
+def run_simulation_ensemble(
+    pdb_file: Annotated[str, "3D structure in pdb format"],
+    nonbondedCutoff: Annotated[float, "cutoff distance for nonbonded interactions"] = 1.0,
+    hydrogenMass: Annotated[float, "mass of hydrogen atoms to stabilize protein dynamics"] = 1.0,
+    pressure: Annotated[float, "pressure for NPT ensemble in atm"] = 1.0,
+    temperature: Annotated[float, "simulation temperature in kelvin"] = 300,
+    timestep: Annotated[float, "simulation timestep in ps"] = 0.002,
+    report_frequency: Annotated[float, "How often MD writes a frame in ps"] = 10,
+    simLength: Annotated[float, "The length of the simulation in ns"] = 0.1,
+    num_sim: Annotated[int, "The number of simulations to run"] = 1,
+):
+    """
+    Run `num_sim` molecular dynamics simulation runs
+    """
+    run_insts = []
+    for _ in range(num_sim):
+        sim_inst = simulate_structure(
+            pdb_file, nonbondedCutoff, hydrogenMass, pressure, temperature, timestep, report_frequency, simLength
+        )
+        run_insts.append(sim_inst)
+
+    results = []
+    for inst in run_insts:
+        results.append(inst.result())
+    return results
+
+
+@python_app
 def simulate_structure(
     pdb_file: Annotated[str, "3D structure in pdb format"],
     nonbondedCutoff: Annotated[float, "cutoff distance for nonbonded interactions"] = 1.0,
@@ -38,13 +67,13 @@ def simulate_structure(
     base_dir = os.getcwd()
     try:
         os.chdir(work_dir)
-        omm_simulate(
+        result = omm_simulate(
             pdb_file, nonbondedCutoff, hydrogenMass, pressure, temperature, timestep, report_frequency, simLength
         )
     finally:
         os.chdir(base_dir)
 
-    return f"Finished simulation. Result store in {work_dir}/output.dcd. "
+    return result
 
 
 def omm_simulate(
@@ -87,6 +116,7 @@ def omm_simulate(
     )
     total_steps = (simLength * u.nanoseconds) / (timestep * u.picoseconds)
     simulation.step(int(total_steps))
+    return {"pdb_file": pdb_file, "trajectory": os.path.abspath("output.dcd")}
 
 
 def save_omm_system(system, save_xml):

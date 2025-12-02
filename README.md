@@ -15,13 +15,15 @@ The main dependencies are `LangGraph` for the LLM agent framework and `OpenMM` f
 
 The test run with a local PDB file can be run with
 ```python
-python examples/sim_team.py
+python examples/local_pdb.py
 ```
 
 The Polaris run is set up with
 ```python
+python examples/polaris_run.py
 ```
 
-## Contributing
+<!-- The simulations can be set up with  -->
 
-This project welcomes contributions and suggestions. For details, visit the repository's [Contributor License Agreement (CLA)](https://cla.opensource.microsoft.com) and [Code of Conduct](https://opensource.microsoft.com/codeofconduct/) pages.
+## Citations
+
